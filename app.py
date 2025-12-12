@@ -28,7 +28,6 @@ st.markdown("""
         margin: 5px 0;
         border-left: 5px solid #4CAF50;
         transition: all 0.3s;
-        cursor: pointer;
     }
     .process-card:hover {
         background-color: #e9ecef;
@@ -83,26 +82,13 @@ st.markdown("""
         font-size: 1.1em;
     }
     .scrollable-list {
-        max-height: 500px;
+        max-height: 400px;
         overflow-y: auto;
         border: 1px solid #ddd;
         border-radius: 10px;
         padding: 10px;
         background-color: #f9f9f9;
-    }
-    .process-list-item {
-        padding: 12px;
-        margin: 5px 0;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-    .process-list-item:hover {
-        background-color: #e9ecef;
-    }
-    .process-list-item.active {
-        background-color: #2196F3;
-        color: white;
+        margin-bottom: 20px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -136,7 +122,7 @@ if 'audio_data_urls' not in st.session_state:
 def load_text_file(filename):
     """Load nội dung file text với nhiều encoding"""
     if not os.path.exists(filename):
-        return f"❌ File không tồn tại: {filename}\n\nVui lòng kiểm tra:\n1. File có tồn tại trong thư mục không?\n2. Tên file có đúng không?\n3. File có bị xóa không?"
+        return f"❌ File không tồn tại: {filename}"
     
     # Thử nhiều encoding khác nhau
     encodings = ['utf-8', 'utf-8-sig', 'latin-1', 'cp1258', 'iso-8859-1', 'ascii']
@@ -167,7 +153,7 @@ def load_text_file(filename):
         # Cuối cùng, thử decode với errors='replace'
         return raw_data.decode('utf-8', errors='replace')
     except Exception as e:
-        return f"⚠️ Lỗi khi đọc file:\n{str(e)}\n\nThông tin file:\n- Tên: {filename}\n- Kích thước: {os.path.getsize(filename) if os.path.exists(filename) else 0} bytes"
+        return f"⚠️ Lỗi khi đọc file:\n{str(e)}"
 
 def get_audio_data_url(audio_file):
     """Chuyển đổi audio file thành data URL để phát"""
@@ -199,7 +185,6 @@ def create_audio_player():
         <div class="audio-controls">
             <div style="color: red; padding: 20px; text-align: center;">
                 ⚠️ Không thể tải file audio: {audio_file}
-                <br><small>Vui lòng kiểm tra xem file có tồn tại không</small>
             </div>
         </div>
         """
@@ -270,38 +255,36 @@ def main():
             else:
                 status_icon = "❌"
             
-            # Xác định class cho item đang active
-            is_active = idx == st.session_state.current_process
-            item_class = "process-list-item active" if is_active else "process-list-item"
+            # Tạo nút cho mỗi quy trình
+            col1, col2 = st.columns([4, 1])
             
-            # Tạo HTML cho mỗi item
-            item_html = f"""
-            <div class="{item_class}" onclick="selectProcess({idx})" style="{'background-color: #2196F3; color: white;' if is_active else ''}">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <strong>Quy trình {idx+1}: {process['name']}</strong>
-                        <div style="font-size: 0.85em; margin-top: 3px;">
-                            <span>🎵 {process['audio']}</span><br>
-                            <span>📄 {process['text']}</span>
+            with col1:
+                # Hiển thị thông tin quy trình
+                is_active = idx == st.session_state.current_process
+                card_class = "active-process" if is_active else ""
+                
+                st.markdown(f"""
+                <div class="process-card {card_class}">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>Quy trình {idx+1}: {process['name']}</strong>
+                            <div style="font-size: 0.85em; margin-top: 5px;">
+                                <div>🎵 {process['audio']}</div>
+                                <div>📄 {process['text']}</div>
+                            </div>
                         </div>
                     </div>
-                    <div>{status_icon}</div>
                 </div>
-            </div>
-            """
-            st.markdown(item_html, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+            
+            with col2:
+                # Nút chọn quy trình
+                if st.button("▶️", key=f"select_{idx}", help=f"Chọn {process['name']}", 
+                           type="primary" if is_active else "secondary"):
+                    st.session_state.current_process = idx
+                    st.rerun()
         
         st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Thêm JavaScript để xử lý click (giả lập)
-        st.markdown("""
-        <script>
-        function selectProcess(index) {
-            // Đây là phần giả lập, trong thực tế cần tích hợp với Streamlit
-            window.location.href = window.location.pathname + "?process=" + index;
-        }
-        </script>
-        """, unsafe_allow_html=True)
         
         st.markdown("---")
         st.markdown("### 🎛️ Cài đặt Audio")
@@ -421,7 +404,7 @@ def main():
                     </p>
                 </div>
                 <div style="background-color: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 20px; font-weight: bold;">
-                    QT {current_process['name'].split()[-1]}
+                    {current_process['name']}
                 </div>
             </div>
         </div>
@@ -431,58 +414,64 @@ def main():
             # Đọc và hiển thị nội dung
             text_content = load_text_file(text_file)
             
-            if text_content:
-                # Kiểm tra nếu nội dung có vẻ là lỗi
-                if "❌ File không tồn tại" in text_content or "⚠️ Lỗi khi đọc file" in text_content:
-                    st.markdown(f"""
-                    <div class="text-display" style="background-color: #ffebee;">
-                        {text_content}
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Thêm nút debug
-                    with st.expander("🔧 Debug thông tin file"):
-                        st.write(f"**Tên file:** {text_file}")
-                        st.write(f"**Đường dẫn đầy đủ:** {os.path.abspath(text_file)}")
-                        st.write(f"**File tồn tại:** {os.path.exists(text_file)}")
-                        if os.path.exists(text_file):
-                            st.write(f"**Kích thước:** {os.path.getsize(text_file)} bytes")
-                            st.write(f"**Thời gian sửa đổi:** {time.ctime(os.path.getmtime(text_file))}")
-                            
-                            # Thử đọc raw bytes
-                            with open(text_file, 'rb') as f:
-                                raw_bytes = f.read(500)  # Đọc 500 byte đầu
-                            st.write(f"**500 byte đầu (hex):**")
-                            st.code(raw_bytes.hex())
-                else:
-                    # Hiển thị nội dung bình thường
-                    st.markdown(f"""
-                    <div class="text-display">
-                        {text_content}
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Thống kê
-                    lines = text_content.split('\n')
-                    words = text_content.split()
-                    chars = len(text_content)
-                    
-                    col_info, col_download = st.columns([2, 1])
-                    
-                    with col_info:
-                        st.caption(f"📊 Thống kê: {len(lines)} dòng, {len(words)} từ, {chars:,} ký tự")
-                    
-                    with col_download:
-                        with open(text_file, "rb") as f:
-                            st.download_button(
-                                label="📥 Tải xuống",
-                                data=f,
-                                file_name=text_file,
-                                mime="text/plain",
-                                use_container_width=True
-                            )
+            if text_content and not text_content.startswith("❌") and not text_content.startswith("⚠️"):
+                # Hiển thị nội dung bình thường
+                st.markdown(f"""
+                <div class="text-display">
+                    {text_content}
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Thống kê
+                lines = text_content.split('\n')
+                words = text_content.split()
+                chars = len(text_content)
+                
+                col_info, col_download = st.columns([2, 1])
+                
+                with col_info:
+                    st.caption(f"📊 Thống kê: {len(lines)} dòng, {len(words)} từ, {chars:,} ký tự")
+                
+                with col_download:
+                    with open(text_file, "rb") as f:
+                        st.download_button(
+                            label="📥 Tải xuống",
+                            data=f,
+                            file_name=text_file,
+                            mime="text/plain",
+                            use_container_width=True
+                        )
             else:
-                st.warning("File text tồn tại nhưng không có nội dung hoặc không thể đọc.")
+                # Hiển thị thông báo lỗi
+                st.markdown(f"""
+                <div class="text-display" style="background-color: #ffebee;">
+                    {text_content}
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Thêm nút debug
+                with st.expander("🔧 Debug thông tin file"):
+                    st.write(f"**Tên file:** {text_file}")
+                    st.write(f"**Đường dẫn đầy đủ:** {os.path.abspath(text_file)}")
+                    st.write(f"**File tồn tại:** {os.path.exists(text_file)}")
+                    if os.path.exists(text_file):
+                        st.write(f"**Kích thước:** {os.path.getsize(text_file)} bytes")
+                        st.write(f"**Thời gian sửa đổi:** {time.ctime(os.path.getmtime(text_file))}")
+                        
+                        # Thử đọc raw bytes
+                        with open(text_file, 'rb') as f:
+                            raw_bytes = f.read(500)  # Đọc 500 byte đầu
+                        st.write(f"**500 byte đầu (hex):**")
+                        st.code(raw_bytes.hex())
+                        
+                        # Thử đọc với encoding mặc định
+                        try:
+                            with open(text_file, 'r', encoding='utf-8') as f:
+                                sample = f.read(200)
+                            st.write(f"**200 ký tự đầu (UTF-8):**")
+                            st.code(sample)
+                        except:
+                            st.write("Không thể đọc với UTF-8")
         else:
             st.error(f"❌ File text không tồn tại: {text_file}")
             
@@ -520,8 +509,8 @@ Bạn có thể chỉnh sửa nội dung này hoặc thay thế bằng nội dun
         ### 🎯 Cách sử dụng:
         
         1. **Chọn Quy Trình**: 
-           - Chọn từ danh sách quy trình trong sidebar bên trái
-           - Sử dụng nút ⏮️ và ⏭️ để chuyển quy trình
+           - Nhấp vào nút ▶️ bên cạnh mỗi quy trình trong danh sách bên trái
+           - Hoặc sử dụng nút ⏮️ và ⏭️ để chuyển quy trình
            - Quy trình đang chọn sẽ được highlight màu xanh
         
         2. **Điều khiển Audio**:
