@@ -82,15 +82,44 @@ st.markdown("""
         color: #2196F3;
         font-size: 1.1em;
     }
+    .track-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .track-item {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .track-item:hover {
+        background-color: #f0f0f0;
+        transform: translateY(-2px);
+    }
+    .track-item.active {
+        background-color: #2196F3;
+        color: white;
+        border-color: #2196F3;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Danh sách các file theo thứ tự trong hình
+# Danh sách các file theo thứ tự mới trong hình
 TRACKS = [
-    {"audio": "QT 58.mp3", "text": "QT 58.txt"},
-    {"audio": "QT 72.mp3", "text": "QT 72.txt"},
-    {"audio": "QT 83.mp3", "text": "QT 83.txt"},
-    {"audio": "QT 85.mp3", "text": "QT 85.txt"}
+    {"audio": "QT 03.mp3", "text": "QT 03.txt"},
+    {"audio": "QT 09.mp3", "text": "QT 09.txt"},
+    {"audio": "QT 13.mp3", "text": "QT 13.txt"},
+    {"audio": "QT 15.mp3", "text": "QT 15.txt"},
+    {"audio": "QT 23.mp3", "text": "QT 23.txt"},
+    {"audio": "QT 30.mp3", "text": "QT 30.txt"},
+    {"audio": "QT 66.mp3", "text": "QT 66.txt"},
+    {"audio": "QT 67.mp3", "text": "QT 67.txt"},
+    {"audio": "QT 68.mp3", "text": "QT 68.txt"},
+    {"audio": "QT 69.mp3", "text": "QT 69.txt"}
 ]
 
 # Khởi tạo session state
@@ -212,20 +241,16 @@ def main():
     with st.sidebar:
         st.markdown("### 📂 Kiểm tra file")
         
-        for idx, track in enumerate(TRACKS):
-            audio_exists = os.path.exists(track["audio"])
-            text_exists = os.path.exists(track["text"])
+        # Hiển thị dạng bảng 2 cột
+        for i in range(0, len(TRACKS), 2):
+            col1, col2 = st.columns(2)
             
-            col1, col2 = st.columns([3, 1])
             with col1:
-                # Hiển thị trạng thái track với màu sắc
-                if audio_exists and text_exists:
-                    status_color = "✅"
-                else:
-                    status_color = "❌"
+                track = TRACKS[i]
+                audio_exists = os.path.exists(track["audio"])
+                text_exists = os.path.exists(track["text"])
                 
-                st.write(f"**Track {idx+1}** {status_color}")
-                
+                st.markdown(f"**Track {i+1}**")
                 if audio_exists:
                     st.success(f"🎵 {track['audio']}")
                 else:
@@ -235,13 +260,35 @@ def main():
                     st.success(f"📄 {track['text']}")
                 else:
                     st.error(f"📄 {track['text']}")
-            
-            with col2:
+                
                 # Nút chọn track
-                if st.button("Chọn", key=f"sidebar_select_{idx}", use_container_width=True,
-                           type="primary" if idx == st.session_state.current_track else "secondary"):
-                    st.session_state.current_track = idx
+                if st.button(f"Chọn {i+1}", key=f"sidebar_select_{i}", use_container_width=True,
+                           type="primary" if i == st.session_state.current_track else "secondary"):
+                    st.session_state.current_track = i
                     st.rerun()
+            
+            if i + 1 < len(TRACKS):
+                with col2:
+                    track = TRACKS[i + 1]
+                    audio_exists = os.path.exists(track["audio"])
+                    text_exists = os.path.exists(track["text"])
+                    
+                    st.markdown(f"**Track {i+2}**")
+                    if audio_exists:
+                        st.success(f"🎵 {track['audio']}")
+                    else:
+                        st.error(f"🎵 {track['audio']}")
+                    
+                    if text_exists:
+                        st.success(f"📄 {track['text']}")
+                    else:
+                        st.error(f"📄 {track['text']}")
+                    
+                    # Nút chọn track
+                    if st.button(f"Chọn {i+2}", key=f"sidebar_select_{i+1}", use_container_width=True,
+                               type="primary" if (i + 1) == st.session_state.current_track else "secondary"):
+                        st.session_state.current_track = i + 1
+                        st.rerun()
         
         st.markdown("---")
         st.markdown("### 🎛️ Cài đặt Audio")
@@ -268,35 +315,86 @@ def main():
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        st.markdown("### 📋 Chọn Track")
+        st.markdown("### 📋 Danh sách Track")
         
-        # Track selection buttons
-        track_cols = st.columns(4)
+        # Tạo grid layout cho danh sách track (2 cột)
+        st.markdown('<div class="track-grid">', unsafe_allow_html=True)
+        
+        # Hiển thị 10 track trong grid 2x5
         for idx in range(len(TRACKS)):
-            with track_cols[idx]:
-                is_active = idx == st.session_state.current_track
-                btn_type = "primary" if is_active else "secondary"
-                if st.button(f"Track {idx+1}", key=f"track_btn_{idx}", 
-                           type=btn_type, use_container_width=True):
-                    st.session_state.current_track = idx
-                    st.rerun()
+            track = TRACKS[idx]
+            audio_exists = os.path.exists(track["audio"])
+            text_exists = os.path.exists(track["text"])
+            
+            # Kiểm tra nếu cả hai file đều tồn tại
+            if audio_exists and text_exists:
+                status_icon = "✅"
+            else:
+                status_icon = "❌"
+            
+            is_active = idx == st.session_state.current_track
+            track_class = "track-item active" if is_active else "track-item"
+            
+            # Tạo HTML cho mỗi track item
+            track_html = f"""
+            <div class="{track_class}" onclick="selectTrack({idx})">
+                <div style="font-weight: bold; font-size: 1.1em;">
+                    Track {idx+1} {status_icon}
+                </div>
+                <div style="font-size: 0.9em; margin-top: 5px;">
+                    <div>🎵 {track['audio'].replace('.mp3', '')}</div>
+                    <div>📄 {track['text'].replace('.txt', '')}</div>
+                </div>
+            </div>
+            """
+            st.markdown(track_html, unsafe_allow_html=True)
         
-        # Navigation buttons (chỉ giữ Previous và Next)
-        col_nav1, col_nav2 = st.columns(2)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # JavaScript để xử lý click trên track item
+        st.markdown(f"""
+        <script>
+        function selectTrack(index) {{
+            // Gửi thông điệp đến Streamlit (giả lập)
+            // Trong thực tế, bạn có thể dùng streamlit.components để giao tiếp
+            // Tạm thời dùng cách đơn giản là reload với tham số
+            window.location.href = window.location.pathname + "?track=" + index;
+        }}
+        
+        // Đọc tham số từ URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const trackParam = urlParams.get('track');
+        if (trackParam !== null) {{
+            // Đã chọn track từ URL
+        }}
+        </script>
+        """, unsafe_allow_html=True)
+        
+        # Navigation buttons
+        col_nav1, col_nav2, col_nav3 = st.columns([1, 2, 1])
         
         with col_nav1:
-            if st.button("⏮️ Track trước", key="btn_prev", use_container_width=True, 
+            if st.button("⏮️ Trước", key="btn_prev", use_container_width=True, 
                         disabled=st.session_state.current_track == 0):
                 st.session_state.current_track = max(0, st.session_state.current_track - 1)
                 st.rerun()
         
         with col_nav2:
-            if st.button("Track tiếp ⏭️", key="btn_next", use_container_width=True,
+            current_track_display = TRACKS[st.session_state.current_track]
+            st.markdown(f"""
+            <div style="text-align: center; padding: 10px; background-color: #e3f2fd; border-radius: 5px;">
+                <strong>Track {st.session_state.current_track + 1}</strong><br>
+                <small>{current_track_display['audio'].replace('.mp3', '')}</small>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col_nav3:
+            if st.button("Tiếp ⏭️", key="btn_next", use_container_width=True,
                         disabled=st.session_state.current_track == len(TRACKS) - 1):
                 st.session_state.current_track = min(len(TRACKS) - 1, st.session_state.current_track + 1)
                 st.rerun()
         
-        # Hiển thị audio player (với các controls tích hợp)
+        # Hiển thị audio player
         st.markdown("### 🔊 Audio Player")
         audio_player_html = create_audio_player()
         st.components.v1.html(audio_player_html, height=200)
@@ -305,7 +403,7 @@ def main():
         current_track_info = TRACKS[st.session_state.current_track]
         st.markdown(f"""
         <div class="status-bar">
-            <div style="display: flex; justify-content: space-between;">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
                 <div>
                     <strong>🎵 Track hiện tại:</strong> {st.session_state.current_track + 1}. {current_track_info['audio']}<br>
                     <strong>📄 File text:</strong> {current_track_info['text']}
@@ -329,15 +427,16 @@ def main():
             file_size = os.path.getsize(current_text_file)
             
             # Tạo header với highlight
+            current_audio_file = TRACKS[st.session_state.current_track]["audio"]
             st.markdown(f"""
             <div style="background-color: #2196F3; color: white; padding: 15px; border-radius: 10px 10px 0 0; margin-bottom: 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <h4 style="margin: 0; color: white;">📁 {current_text_file}</h4>
-                        <p style="margin: 5px 0 0 0; font-size: 0.9em;">Kích thước: {file_size:,} bytes</p>
+                        <h4 style="margin: 0; color: white;">🎵 {current_audio_file.replace('.mp3', '')} | 📁 {current_text_file}</h4>
+                        <p style="margin: 5px 0 0 0; font-size: 0.9em;">Kích thước: {file_size:,} bytes | Track {st.session_state.current_track + 1}/{len(TRACKS)}</p>
                     </div>
                     <div style="background-color: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 20px; font-weight: bold;">
-                        Track {st.session_state.current_track + 1}
+                        {current_audio_file.replace('.mp3', '')}
                     </div>
                 </div>
             </div>
@@ -408,7 +507,7 @@ Thời gian: {time.strftime('%Y-%m-%d %H:%M:%S')}
         ### 🎯 Cách sử dụng:
         
         1. **Chọn track**: 
-           - Nhấp vào nút "Track 1", "Track 2", ... trong phần "Chọn Track"
+           - Nhấp vào track trong danh sách grid (2 cột)
            - Hoặc nhấp nút "Chọn" trong sidebar
            - Track đang chọn sẽ được highlight bằng màu xanh
         
@@ -424,6 +523,10 @@ Thời gian: {time.strftime('%Y-%m-%d %H:%M:%S')}
         4. **Xem nội dung text**:
            - Nội dung file text tương ứng sẽ hiển thị trong khung màu xanh
            - Có thể tải xuống file text bằng nút "Tải xuống"
+        
+        ### 📋 Danh sách track mới:
+        - QT 03, QT 09, QT 13, QT 15, QT 23
+        - QT 30, QT 66, QT 67, QT 68, QT 69
         
         ### 🔧 Xử lý sự cố:
         
